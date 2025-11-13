@@ -1,1 +1,23 @@
+name: Update Database
 
+on:
+  push:
+    paths:
+      - 'data/laws.csv'  # Runs when you change the CSV
+  workflow_dispatch:     # Allows manual button click
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npm run ingest
+        env:
+          # These pull from your GitHub Repository Settings
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_KEY: ${{ secrets.QDRANT_KEY }}
