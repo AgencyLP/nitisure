@@ -1,1 +1,18 @@
-
+{
+  "name": "nitisure",
+  "version": "1.0.0",
+  "scripts": {
+    "ingest": "ts-node scripts/ingest.ts"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^2.6.4",
+    "@qdrant/js-client-rest": "^1.7.0",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.4.1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.19"
+  }
+}
