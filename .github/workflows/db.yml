@@ -1,0 +1,30 @@
+name: Update Database
+
+on:
+  push:
+    paths:
+      - 'data/laws.csv'
+      - 'scripts/ingest.ts'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Ingestion Script
+        run: npx ts-node scripts/ingest.ts
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_KEY: ${{ secrets.QDRANT_KEY }}
