@@ -4,14 +4,10 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { HfInference } from '@huggingface/inference';
 import path from 'path';
 
-// --- CONFIGURATION ---
 const HF_MODEL = 'intfloat/multilingual-e5-base'; 
+const FILE_PATH = path.join(__dirname, '../data/laws.csv');
 const COLLECTION_NAME = process.env.QDRANT_COLLECTION || 'nitisure_laws';
 
-// Fix Path: Points explicitly to data/laws.csv from the root
-const FILE_PATH = path.join(process.cwd(), 'data', 'laws.csv');
-
-// --- CHECK KEYS ---
 if (!process.env.HF_TOKEN || !process.env.QDRANT_URL || !process.env.QDRANT_KEY) {
   console.error('❌ MISSING KEYS: GitHub Secrets are not set!');
   process.exit(1);
@@ -25,7 +21,6 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function main() {
   console.log('🚀 Starting Ingestion...');
 
-  // 1. SETUP DATABASE
   try {
     const result = await qdrant.getCollections();
     const exists = result.collections.some((c) => c.name === COLLECTION_NAME);
@@ -38,29 +33,24 @@ async function main() {
     process.exit(1);
   }
 
-  // 2. READ CSV
   const rows: any[] = [];
-  
-  // Check if file exists before reading
+  // Safe check for file existence
   if (!fs.existsSync(FILE_PATH)) {
-    console.error(`❌ File not found at: ${FILE_PATH}`);
-    console.error('Did you name it laws.csv or laws.cvs? Check the spelling!');
-    process.exit(1);
+     console.error(`❌ File not found at: ${FILE_PATH}`);
+     process.exit(1);
   }
 
   fs.createReadStream(FILE_PATH)
     .pipe(csv())
     .on('data', (data) => rows.push(data))
     .on('end', async () => {
-      console.log(`📊 Found ${rows.length} rows. Processing...`);
+      console.log(`📊 Found ${rows.length} rows.`);
 
       for (const row of rows) {
-        // Skip if empty
         if (!row.text_th) continue;
 
         console.log(`🔹 Processing: ${row.section_number_eng}`);
 
-        // --- MATCHING YOUR EXACT CSV HEADERS HERE ---
         const textToEmbed = `
           Law: ${row.act_name_thai} (${row.act_name_eng})
           Section: ${row.section_number_eng}
@@ -80,9 +70,9 @@ async function main() {
           await qdrant.upsert(COLLECTION_NAME, {
             points: [{
               id: crypto.randomUUID(),
-              vector: embedding,
+              // FIX IS HERE: We force it to be a number array
+              vector: embedding as unknown as number[], 
               payload: {
-                // Storing metadata for the UI
                 act_name: row.act_name_thai,
                 section: row.section_number_eng,
                 text: row.text_th,
@@ -93,9 +83,9 @@ async function main() {
             }]
           });
           console.log(`✅ Uploaded ${row.section_number_eng}`);
-          await sleep(500); // Slow down slightly for safety
+          await sleep(300);
         } catch (error) {
-          console.error(`❌ Failed Row ${row.ID}:`, error);
+          console.error(`❌ Failed Row:`, error);
         }
       }
       console.log('🎉 INGESTION COMPLETE!');
